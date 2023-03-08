@@ -10,7 +10,7 @@ classdef TAExperiment < handle
 
         nPixels (1, 1) {mustBeNumeric}
         pixels (1, :) {mustBeNonnegative}
-        wavelengths(:, 1) {mustBeNonnegative}
+        wavelengths(1, :) {mustBeNonnegative}
 
         Calibration (1, 2) {mustBeNumeric}
         CalibrationPoints (:, 1) CalibrationPoint
@@ -27,7 +27,7 @@ classdef TAExperiment < handle
 
         nScans (1, 1) {mustBeNonnegative}
 
-        scans (1, :) TAScan
+        scans %(1, :) TAScan
 
         TAMean (:, :) {mustBeNumeric}
         TAVariance (:, :) {mustBeNumeric}
@@ -48,16 +48,22 @@ classdef TAExperiment < handle
 
     methods (Access = public)
         
-        function obj = TAExperiment(fileName)
+        function obj = TAExperiment(fileName, options)
             
             arguments
                 fileName (1, 1) string
+                options.Experiment = 'Burritos';
             end
 
             obj.fileName = fileName;
             
             if isfile(obj.fileName)
-                obj.loadFile();
+                switch lower(options.Experiment)
+                    case 'burritos'
+                        obj.loadFile();
+                    case 'specter'
+                        obj.loadFile716();
+                end
             else
                 error('File not found');
             end
@@ -127,7 +133,7 @@ classdef TAExperiment < handle
             view(axTA, [0, 90]);
             title(axTA, obj.makeTitle());
             subtitle(axTA, obj.makeSubtitle());
-            
+
         end
 
         function [timeTraceMean, timeTraceVar, timeTraceNshots] = getTimeTrace(obj, wavelength, options)
@@ -239,6 +245,7 @@ classdef TAExperiment < handle
         end
 
         function loadFile(obj)
+
             data = jsondecode(fileread(obj.fileName));
             obj.json = data;
             
@@ -268,7 +275,6 @@ classdef TAExperiment < handle
             obj.times = data.TransientAbsorption.time_delays;
 
             obj.nScans = length(data.TransientAbsorption.scans);
-
             obj.scans = TAScan.empty(obj.nScans, 0);
 
             for i = 1:length(data.TransientAbsorption.analytes)
@@ -283,6 +289,70 @@ classdef TAExperiment < handle
             end
 
             [obj.TAMean, obj.TAVariance, obj.TANShots, obj.pumpOnMean, obj.pumpOnVariance, obj.pumpOnNShots, obj.pumpOffMean, obj.pumpOffVariance, obj.pumpOffNShots] = deal(zeros(obj.nTimes, obj.nPixels));
+            
+            obj.combine_scans();
+
+        end
+
+        function loadFile716(obj)
+
+            listTimes = [];
+
+            lines = readlines(obj.fileName);
+            
+            obj.nPixels = 256;
+            obj.buildPixelsVector();
+
+            listNShots = [];
+            listPumpOff = [];
+            listPumpOn = [];
+            listTAMean = [];
+            listTAVar = [];
+
+            for i = 1:length(lines)
+
+                line = lines(i);
+
+                switch line
+                    case "# Spectrograph:  Slope and intercept"
+                        slopeAndIntercept = split(lines(i+1));
+                        obj.Calibration(1, 1) = str2double(slopeAndIntercept(1));
+                        obj.Calibration(1, 2) = str2double(slopeAndIntercept(2));
+                        obj.buildWavelengthVector();
+                    case "# Pump-Probe Delay"
+                        listTimes = [listTimes; str2double(lines(i+1))];
+                        listNShots = [listNShots; str2double(split(lines(i+4)))'];
+                        listPumpOff = [listPumpOff; str2double(split(lines(i+7)))'];
+                        listPumpOn = [listPumpOn; str2double(split(lines(i+13)))'];
+                        listTAMean = [listTAMean; 1E3*str2double(split(lines(i+13)))'];
+                        listTAVar = [listTAVar; (1E3*str2double(split(lines(i+13)))).^2'];
+                end
+
+                
+            end
+            
+            obj.times = unique(listTimes);
+            obj.nTimes = length(obj.times);
+
+            obj.nScans = ceil(length(listTimes) / length(obj.times));
+
+            pad = zeros(obj.nScans*length(obj.times) - length(listTimes), obj.nPixels);
+
+            listNShots = [listNShots; pad];
+            listPumpOff = [listPumpOff; pad];
+            listPumpOn = [listPumpOn; pad];
+            listTAMean = [listTAMean; pad];
+            listTAVar = [listTAVar; pad];
+
+            cubeNShots = reshape(listNShots, obj.nScans, obj.nTimes, obj.nPixels);
+            cubePumpOff = reshape(listPumpOff, obj.nScans, obj.nTimes, obj.nPixels);
+            cubePumpOn = reshape(listPumpOn, obj.nScans, obj.nTimes, obj.nPixels);
+            cubeTAMean = reshape(listTAMean, obj.nScans, obj.nTimes, obj.nPixels);
+            cubeTAVar = reshape(listTAVar, obj.nScans, obj.nTimes, obj.nPixels);
+
+           %%%%%% NEED TO REFACTOR HOW INITIALISING TASCAN WORKS
+            
+
         end
 
         function buildPixelsVector(obj)
