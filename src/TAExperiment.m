@@ -27,7 +27,7 @@ classdef TAExperiment < handle
 
         nScans (1, 1) {mustBeNonnegative}
 
-        scans %(1, :) TAScan
+        scans (:, 1) TAScan
 
         TAMean (:, :) {mustBeNumeric}
         TAVariance (:, :) {mustBeNumeric}
@@ -288,7 +288,8 @@ classdef TAExperiment < handle
             obj.times = data.TransientAbsorption.time_delays;
 
             obj.nScans = length(data.TransientAbsorption.scans);
-            obj.scans = TAScan.empty(obj.nScans, 0);
+            %obj.scans = TAScan.empty(TAScan(obj.nTimes, obj.nPixels), 1);
+            obj.scans(obj.nScans, 1) = TAScan(obj.nTimes, obj.nPixels);
 
             for i = 1:length(data.TransientAbsorption.analytes)
                 mol = data.TransientAbsorption.analytes(i).analyte;
@@ -298,7 +299,8 @@ classdef TAExperiment < handle
             end
 
             for i = 1:obj.nScans
-                obj.scans(i) = TAScan(data.TransientAbsorption.scans(i), obj.nTimes, obj.nPixels);
+                obj.scans(i).populate714(data.TransientAbsorption.scans(i));
+                %obj.scans(i) = TAScan(data.TransientAbsorption.scans(i), obj.nTimes, obj.nPixels);
             end
 
             [obj.TAMean, obj.TAVariance, obj.TANShots, obj.pumpOnMean, obj.pumpOnVariance, obj.pumpOnNShots, obj.pumpOffMean, obj.pumpOffVariance, obj.pumpOffNShots] = deal(zeros(obj.nTimes, obj.nPixels));

@@ -6,6 +6,9 @@ classdef TAScan < handle
         dateFinished (1, 1) string
         timeFinished (1, 1) string
 
+        nTimes (1, 1) {mustBeNumeric}
+        nPixels (1, 1) {mustBeNumeric}
+
         TAMean (:, :) {mustBeNumeric}
         TAVariance (:, :) {mustBeNumeric}
         TANShots (:, :) {mustBeNumeric}
@@ -22,15 +25,24 @@ classdef TAScan < handle
     end
     
     methods
-        function obj = TAScan(jsonscan, nTimes, nPixels)
+        function obj = TAScan(nTimes, nPixels)
+            
+            obj.nTimes = nTimes;
+            obj.nPixels = nPixels;
+
+            [obj.TAMean, obj.TAVariance, obj.TANShots, obj.pumpOnMean, obj.pumpOnVariance, obj.pumpOnNShots, obj.pumpOffMean, obj.pumpOffVariance, obj.pumpOffNShots] = deal(zeros(nTimes, nPixels));
+            
+            
+        end
+
+        function populate714(obj, jsonscan)
+
             obj.dateStarted = jsonscan.date_started;
             obj.timeStarted = jsonscan.time_started;
             obj.dateFinished = jsonscan.date_finished;
             obj.timeFinished = jsonscan.time_finished;
 
-            [obj.TAMean, obj.TAVariance, obj.TANShots, obj.pumpOnMean, obj.pumpOnVariance, obj.pumpOnNShots, obj.pumpOffMean, obj.pumpOffVariance, obj.pumpOffNShots] = deal(zeros(nTimes, nPixels));
-            
-            for i = 1:nTimes
+            for i = 1:obj.nTimes
                 obj.TAMean(i, :) = jsonscan.scan(i).spectrum.transient_absorption.mean;
                 obj.TAVariance(i, :) = jsonscan.scan(i).spectrum.transient_absorption.variance;
                 obj.TANShots(i, :) = jsonscan.scan(i).spectrum.transient_absorption.num_shots;
@@ -43,6 +55,10 @@ classdef TAScan < handle
                 obj.pumpOffVariance(i, :) = jsonscan.scan(i).spectrum.pump_off.variance;
                 obj.pumpOffNShots(i, :) = jsonscan.scan(i).spectrum.pump_off.num_shots;
             end
+
+        end
+
+        function populate716()
         end
     end
     
