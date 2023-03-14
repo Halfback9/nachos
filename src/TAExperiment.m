@@ -94,20 +94,10 @@ classdef TAExperiment < handle
             correctionApp = DispersionCorrection(obj.pixels, obj.times, obj.TAMean);
             uiwait(correctionApp.UIFigure);
             obj.dispersionFitCoefficients = correctionApp.dispersionFitCoefficients;
-            obj.dispersionFit = correctionApp.dispersionFit;
-
-            [~, timeGrid] = meshgrid(obj.pixels, obj.times);
-            time_shifted_grid = timeGrid - obj.dispersionFit; % Care must be taken that the dispersion curve is a row vec while the timegrid has columns as pixels amnd the rows as times
+            obj.buildDispersionFit();
             
-            for i = 1:obj.nScans
-                for j = 1:obj.nPixels
-                    obj.scans(i).TAMean(:, j) = interp1(time_shifted_grid(:, j), obj.scans(i).TAMean(:, j), obj.times, 'linear', 'extrap');
-                end
-            end
-
-            obj.combine_scans();
-
-
+            obj.dispersionCorrectData()
+           
         end
 
         function [figTA, axTA] = peekTA(obj, options)
@@ -232,9 +222,32 @@ classdef TAExperiment < handle
 
         end
 
+        function applyExternalDispersionCorrection(obj, dispersionFitCoefficients)
+            
+            arguments
+                obj TAExperiment
+                dispersionFitCoefficients (1, :) {mustBeNumeric}
+            end
+
+            obj.dispersionFitCoefficients = dispersionFitCoefficients;
+            obj.buildDispersionFit();
+            obj.dispersionCorrectData();
+            
+        end
+        
     end
 
     methods (Access = private)
+
+        function buildDispersionFit(obj)
+            obj.dispersionFit = zeros(size(obj.pixels));
+            coeffs = flip(obj.dispersionFitCoefficients);
+            
+            for i = 1:length(coeffs)
+                obj.dispersionFit = obj.dispersionFit + coeffs(i).*obj.pixels.^(i-1);
+            end
+            
+        end
 
         function index = findWavelength(obj, wavelength)
             [~, index] = min(abs(obj.wavelengths - wavelength));
@@ -420,6 +433,22 @@ classdef TAExperiment < handle
             %energy = sprintf('%.1f', obj.pumpEnergy);
             subtitlestring = strcat("\lambda_{exc} = ", wavelength, " nm \Delta_{\lambda} = ", bandwidth, " nm");
             %subtitlestring = strcat("\lambda_{exc} = ", wavelength, " nm \Delta_{\lambda} = ", bandwidth, " nm E = ", energy, " nJ");
+        end
+
+        function dispersionCorrectData(obj)
+
+             [~, timeGrid] = meshgrid(obj.pixels, obj.times);
+            time_shifted_grid = timeGrid - obj.dispersionFit; % Care must be taken that the dispersion curve is a row vec while the timegrid has columns as pixels amnd the rows as times
+            
+            for i = 1:obj.nScans
+                for j = 1:obj.nPixels
+                    obj.scans(i).TAMean(:, j) = interp1(time_shifted_grid(:, j), obj.scans(i).TAMean(:, j), obj.times, 'linear', 'extrap');
+                end
+            end
+
+            obj.combine_scans();
+
+
         end
 
     end
