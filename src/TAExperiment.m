@@ -6,11 +6,6 @@ classdef TAExperiment < handle
        
         json;
 
-%         obj.pumpWavelength = data.TransientAbsorption.pump_wavelength;
-%             obj.pumpBandwidth = data.TransientAbsorption.pump_bandwidth;
-%             obj.pumpEnergy = data.TransientAbsorption.pump_energy;
-%             obj.solvent = data.TransientAbsorption.solvent;
-
         fileName (1,1) string
 
         nPixels (1, 1) {mustBeNumeric}
@@ -467,7 +462,6 @@ classdef TAExperiment < handle
             end
 
             obj.combine_scans();
-
 
         end
 
