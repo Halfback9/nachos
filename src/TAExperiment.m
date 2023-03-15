@@ -19,7 +19,7 @@ classdef TAExperiment < handle
         pumpBandwidth (1, 1) {mustBeNumeric} = 0
         pumpEnergy (1, 1) {mustBeNumeric} = 0
 
-        analytes (1, :) string
+        analytes Analyte
         solvent (1, 1) string = ""
         
         nTimes (1, 1) {mustBeNumeric}
@@ -296,13 +296,21 @@ classdef TAExperiment < handle
                 obj.scans(i) = TAScan(obj.nTimes, obj.nPixels);
                 obj.scans(i).populate714(data.TransientAbsorption.scans(i));
             end
-
-            for i = 1:length(data.TransientAbsorption.analytes)
-                mol = data.TransientAbsorption.analytes(i).analyte;
-                conc = sprintf('%.3f', data.TransientAbsorption.analytes(i).concentration);
-                anal = {mol, conc};
-                obj.analytes = [obj.analytes, anal];
+            
+            if ~isempty(data.TransientAbsorption.analytes)
+                obj.analytes = Analyte.empty(length(data.TransientAbsorption.analytes), 0);
+                for i = 1:length(data.TransientAbsorption.analytes)
+                    mol = data.TransientAbsorption.analytes(i).analyte;
+                    conc = data.TransientAbsorption.analytes(i).concentration;%sprintf('%.3f', data.TransientAbsorption.analytes(i).concentration);
+                    obj.analytes(i) = Analyte(mol, conc);
+                end
             end
+%             %for i = 1:length(data.TransientAbsorption.analytes)
+%                 mol = data.TransientAbsorption.analytes(i).analyte;
+%                 conc = sprintf('%.3f', data.TransientAbsorption.analytes(i).concentration);
+%                 anal = {mol, conc};
+%                 obj.analytes = [obj.analytes, anal];
+%             end
 
             [obj.TAMean, obj.TAVariance, obj.TANShots, obj.pumpOnMean, obj.pumpOnVariance, obj.pumpOnNShots, obj.pumpOffMean, obj.pumpOffVariance, obj.pumpOffNShots] = deal(zeros(obj.nTimes, obj.nPixels));
             
@@ -432,8 +440,8 @@ classdef TAExperiment < handle
         function titlestring = makeTitle(obj)
             titlestring = "";
             if ~isempty(obj.analytes)
-                for i = 1:size(obj.analytes, 1)
-                    analytestring = strcat(obj.analytes(i, 1), " (", obj.analytes(i, 2), " \muM)  ");
+                for i = 1:length(obj.analytes)
+                    analytestring = strcat(obj.analytes.name, " (", sprintf('%.2f', obj.analytes.concentration), " \muM)  ");
                     titlestring = strcat(titlestring, analytestring);
                 end
             else
@@ -441,13 +449,16 @@ classdef TAExperiment < handle
             end
 
             titlestring = strcat(titlestring, '/ ', obj.solvent);
+
         end
 
         function subtitlestring = makeSubtitle(obj)
+
             wavelength = sprintf('%.0f', obj.pumpWavelength);
             bandwidth = sprintf('%.0f', obj.pumpBandwidth);
             energy = sprintf('%.1f', obj.pumpEnergy);
             subtitlestring = strcat("\lambda_{exc} = ", wavelength, " nm \Delta_{\lambda} = ", bandwidth, " nm E = ", energy, " nJ");
+            
         end
 
         function dispersionCorrectData(obj)
