@@ -6,6 +6,11 @@ classdef TAExperiment < handle
        
         json;
 
+%         obj.pumpWavelength = data.TransientAbsorption.pump_wavelength;
+%             obj.pumpBandwidth = data.TransientAbsorption.pump_bandwidth;
+%             obj.pumpEnergy = data.TransientAbsorption.pump_energy;
+%             obj.solvent = data.TransientAbsorption.solvent;
+
         fileName (1,1) string
 
         nPixels (1, 1) {mustBeNumeric}
@@ -15,12 +20,12 @@ classdef TAExperiment < handle
         Calibration (1, 2) {mustBeNumeric}
         CalibrationPoints (:, 1) CalibrationPoint
 
-        pumpWavelength (1, 1) {mustBeNumeric}
-        pumpBandwidth (1, 1) {mustBeNumeric}
-        pumpEnergy (1, 1) {mustBeNumeric}
+        pumpWavelength (1, 1) {mustBeNumeric} = 0 
+        pumpBandwidth (1, 1) {mustBeNumeric} = 0
+        pumpEnergy (1, 1) {mustBeNumeric} = 0
 
         analytes (1, :) string
-        solvent (1, 1) string
+        solvent (1, 1) string = ""
         
         nTimes (1, 1) {mustBeNumeric}
         times (:, 1) {mustBeNumeric}
@@ -56,6 +61,8 @@ classdef TAExperiment < handle
             end
 
             obj.fileName = fileName;
+
+            
             
             if isfile(obj.fileName)
                 switch lower(options.Experiment)
@@ -121,8 +128,8 @@ classdef TAExperiment < handle
             ylabel(axTA, 'Times / ps');
             %ylim(axTA, [min(obj.times), max(obj.times)]);
             view(axTA, [0, 90]);
-            %title(axTA, obj.makeTitle());
-            %subtitle(axTA, obj.makeSubtitle());
+            title(axTA, obj.makeTitle());
+            subtitle(axTA, obj.makeSubtitle());
 
         end
 
@@ -429,9 +436,13 @@ classdef TAExperiment < handle
 
         function titlestring = makeTitle(obj)
             titlestring = "";
-            for i = 1:size(obj.analytes, 1)
-                analytestring = strcat(obj.analytes(i, 1), " (", obj.analytes(i, 2), " \muM)  ");
-                titlestring = strcat(titlestring, analytestring);
+            if ~isempty(obj.analytes)
+                for i = 1:size(obj.analytes, 1)
+                    analytestring = strcat(obj.analytes(i, 1), " (", obj.analytes(i, 2), " \muM)  ");
+                    titlestring = strcat(titlestring, analytestring);
+                end
+            else
+                titlestring = "Analyte Unknown";
             end
 
             titlestring = strcat(titlestring, '/ ', obj.solvent);
@@ -440,14 +451,13 @@ classdef TAExperiment < handle
         function subtitlestring = makeSubtitle(obj)
             wavelength = sprintf('%.0f', obj.pumpWavelength);
             bandwidth = sprintf('%.0f', obj.pumpBandwidth);
-            %energy = sprintf('%.1f', obj.pumpEnergy);
-            subtitlestring = strcat("\lambda_{exc} = ", wavelength, " nm \Delta_{\lambda} = ", bandwidth, " nm");
-            %subtitlestring = strcat("\lambda_{exc} = ", wavelength, " nm \Delta_{\lambda} = ", bandwidth, " nm E = ", energy, " nJ");
+            energy = sprintf('%.1f', obj.pumpEnergy);
+            subtitlestring = strcat("\lambda_{exc} = ", wavelength, " nm \Delta_{\lambda} = ", bandwidth, " nm E = ", energy, " nJ");
         end
 
         function dispersionCorrectData(obj)
 
-             [~, timeGrid] = meshgrid(obj.pixels, obj.times);
+            [~, timeGrid] = meshgrid(obj.pixels, obj.times);
             time_shifted_grid = timeGrid - obj.dispersionFit; % Care must be taken that the dispersion curve is a row vec while the timegrid has columns as pixels amnd the rows as times
             
             for i = 1:obj.nScans
