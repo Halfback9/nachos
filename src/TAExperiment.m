@@ -27,7 +27,7 @@ classdef TAExperiment < handle
 
         nScans (1, 1) {mustBeNonnegative}
 
-        scans (:, 1) TAScan
+        scans TAScan
 
         TAMean (:, :) {mustBeNumeric}
         TAVariance (:, :) {mustBeNumeric}
@@ -43,7 +43,7 @@ classdef TAExperiment < handle
 
         dispersionFitCoefficients (1, :) {mustBeNumeric}
         dispersionFit (1, :) {mustBeNumeric}
-        
+
     end
 
     methods (Access = public)
@@ -112,17 +112,17 @@ classdef TAExperiment < handle
             if options.XValues == "Wavelengths"
                 surf(axTA, obj.wavelengths, obj.times, obj.TAMean, 'EdgeColor', 'none');
                 xlabel(axTA, 'Wavelengths / nm');
-                xlim(axTA, [min(obj.wavelengths), max(obj.wavelengths)]);
+                %xlim(axTA, [min(obj.wavelengths), max(obj.wavelengths)]);
             else
                 surf(axTA, obj.pixels, obj.times, obj.TAMean, 'EdgeColor', 'none');
                 xlabel(axTA, 'Pixels');
-                xlim(axTA, [min(obj.pixels), max(obj.pixels)]);
+                %xlim(axTA, [min(obj.pixels), max(obj.pixels)]);
             end
             ylabel(axTA, 'Times / ps');
-            ylim(axTA, [min(obj.times), max(obj.times)]);
+            %ylim(axTA, [min(obj.times), max(obj.times)]);
             view(axTA, [0, 90]);
-            title(axTA, obj.makeTitle());
-            subtitle(axTA, obj.makeSubtitle());
+            %title(axTA, obj.makeTitle());
+            %subtitle(axTA, obj.makeSubtitle());
 
         end
 
@@ -281,26 +281,25 @@ classdef TAExperiment < handle
 
             obj.pumpWavelength = data.TransientAbsorption.pump_wavelength;
             obj.pumpBandwidth = data.TransientAbsorption.pump_bandwidth;
-            %obj.pumpEnergy = data.TransientAbsorption.pump_energy;
+            obj.pumpEnergy = data.TransientAbsorption.pump_energy;
             obj.solvent = data.TransientAbsorption.solvent;
 
             obj.nTimes = length(data.TransientAbsorption.time_delays);
             obj.times = data.TransientAbsorption.time_delays;
 
             obj.nScans = length(data.TransientAbsorption.scans);
-            %obj.scans = TAScan.empty(TAScan(obj.nTimes, obj.nPixels), 1);
-            obj.scans(obj.nScans, 1) = TAScan(obj.nTimes, obj.nPixels);
+            obj.scans = TAScan.empty(obj.nScans, 0);
+
+            for i = 1:obj.nScans
+                obj.scans(i) = TAScan(obj.nTimes, obj.nPixels);
+                obj.scans(i).populate714(data.TransientAbsorption.scans(i));
+            end
 
             for i = 1:length(data.TransientAbsorption.analytes)
                 mol = data.TransientAbsorption.analytes(i).analyte;
                 conc = sprintf('%.3f', data.TransientAbsorption.analytes(i).concentration);
                 anal = {mol, conc};
                 obj.analytes = [obj.analytes, anal];
-            end
-
-            for i = 1:obj.nScans
-                obj.scans(i).populate714(data.TransientAbsorption.scans(i));
-                %obj.scans(i) = TAScan(data.TransientAbsorption.scans(i), obj.nTimes, obj.nPixels);
             end
 
             [obj.TAMean, obj.TAVariance, obj.TANShots, obj.pumpOnMean, obj.pumpOnVariance, obj.pumpOnNShots, obj.pumpOffMean, obj.pumpOffVariance, obj.pumpOffNShots] = deal(zeros(obj.nTimes, obj.nPixels));
@@ -339,8 +338,8 @@ classdef TAExperiment < handle
                         listNShots = [listNShots; str2double(split(lines(i+4)))'];
                         listPumpOff = [listPumpOff; str2double(split(lines(i+7)))'];
                         listPumpOn = [listPumpOn; str2double(split(lines(i+13)))'];
-                        listTAMean = [listTAMean; 1E3*str2double(split(lines(i+13)))'];
-                        listTAVar = [listTAVar; (1E3*str2double(split(lines(i+13)))).^2'];
+                        listTAMean = [listTAMean; 1E-3*str2double(split(lines(i+19)))'];
+                        listTAVar = [listTAVar; (1E-3*str2double(split(lines(i+22)))).^2'];
                 end
 
                 
@@ -359,14 +358,23 @@ classdef TAExperiment < handle
             listTAMean = [listTAMean; pad];
             listTAVar = [listTAVar; pad];
 
-            cubeNShots = reshape(listNShots, obj.nScans, obj.nTimes, obj.nPixels);
-            cubePumpOff = reshape(listPumpOff, obj.nScans, obj.nTimes, obj.nPixels);
-            cubePumpOn = reshape(listPumpOn, obj.nScans, obj.nTimes, obj.nPixels);
-            cubeTAMean = reshape(listTAMean, obj.nScans, obj.nTimes, obj.nPixels);
-            cubeTAVar = reshape(listTAVar, obj.nScans, obj.nTimes, obj.nPixels);
-
-           %%%%%% NEED TO REFACTOR HOW INITIALISING TASCAN WORKS
+            cubeNShots = reshape(listNShots, obj.nTimes, obj.nScans, obj.nPixels);
+            cubePumpOff = reshape(listPumpOff, obj.nTimes, obj.nScans, obj.nPixels);
+            cubePumpOn = reshape(listPumpOn, obj.nTimes, obj.nScans, obj.nPixels);
+            cubeTAMean = reshape(listTAMean, obj.nTimes, obj.nScans, obj.nPixels);
+            cubeTAVar = reshape(listTAVar, obj.nTimes, obj.nScans, obj.nPixels);
             
+            obj.scans = TAScan.empty(obj.nScans, 0);
+            
+            for i = 1:obj.nScans
+                obj.scans(i) = TAScan(obj.nTimes, obj.nPixels);
+                obj.scans(i).populate716(cubeTAMean(:, i, :), cubeTAVar(:, i, :), cubeNShots(:, i, :), cubePumpOff(:, i, :), cubePumpOn(:, i, :));
+                
+            end
+
+            [obj.TAMean, obj.TAVariance, obj.TANShots, obj.pumpOnMean, obj.pumpOnVariance, obj.pumpOnNShots, obj.pumpOffMean, obj.pumpOffVariance, obj.pumpOffNShots] = deal(zeros(obj.nTimes, obj.nPixels));
+            
+            obj.combine_scans();
 
         end
 

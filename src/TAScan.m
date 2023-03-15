@@ -21,12 +21,16 @@ classdef TAScan < handle
         pumpOffVariance (:, :) {mustBeNumeric}
         pumpOffNShots (:, :) {mustBeNumeric}
         
-
     end
     
     methods
         function obj = TAScan(nTimes, nPixels)
-            
+
+            arguments
+                nTimes (1, 1) {mustBeNumeric}
+                nPixels (1, 1) {mustBeNumeric}
+            end
+
             obj.nTimes = nTimes;
             obj.nPixels = nPixels;
 
@@ -58,8 +62,16 @@ classdef TAScan < handle
 
         end
 
-        function populate716()
+        function populate716(obj, TA, TAVar, TANShots, pumpOff, pumpOn)
+            obj.TAMean = TA;
+            obj.TAVariance = TAVar;
+            obj.TANShots = TANShots;
+            obj.pumpOffMean = pumpOff;
+            obj.pumpOffNShots = TANShots;
+            obj.pumpOnMean = pumpOn;
+            obj.pumpOnNShots = TANShots;
         end
+
     end
     
 end
