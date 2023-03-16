@@ -102,36 +102,153 @@ classdef TAExperiment < handle
            
         end
 
-        function [figTA, axTA] = peekTA(obj, options)
+        function [figTA, axTA, cbar] = peekTA(obj, options)
             arguments
                 obj TAExperiment
-                options.XValues = "Wavelengths"
-
+                options.Units = "Wavelengths"
+                options.TimeLimits = [min(obj.times), max(obj.times)];
             end
 
             figTA = figure();
             axTA = axes('Parent',figTA);
-            if options.XValues == "Wavelengths"
+            if options.Units == "Wavelengths"
                 surf(axTA, obj.wavelengths, obj.times, obj.TAMean, 'EdgeColor', 'none');
                 xlabel(axTA, 'Wavelengths / nm');
-                %xlim(axTA, [min(obj.wavelengths), max(obj.wavelengths)]);
+                xlim(axTA, [min(obj.wavelengths), max(obj.wavelengths)]);
             else
                 surf(axTA, obj.pixels, obj.times, obj.TAMean, 'EdgeColor', 'none');
                 xlabel(axTA, 'Pixels');
-                %xlim(axTA, [min(obj.pixels), max(obj.pixels)]);
+                xlim(axTA, [min(obj.pixels), max(obj.pixels)]);
             end
             ylabel(axTA, 'Times / ps');
-            %ylim(axTA, [min(obj.times), max(obj.times)]);
+            ylim(axTA, options.TimeLimits);
+            set(axTA, 'FontSize', 12);
+            set(axTA, 'Box', 'On', 'LineWidth', 2);
+            set(axTA, 'TickLength', [0.015, 0.015]);
+            set(axTA, 'Layer', 'top', 'XGrid', 'off', 'YGrid', 'off');
             view(axTA, [0, 90]);
             title(axTA, obj.makeTitle());
             subtitle(axTA, obj.makeSubtitle());
+            box(axTA, 'On');
+            defaultColourLims = clim(axTA);
+            maxColourLim = min(abs(defaultColourLims));
+            clim(axTA, [-maxColourLim, maxColourLim]);
+            if exist('brewermap', 'file') == 2
+                colormap(axTA, brewermap([],'RdBu'));
+            else
+                colormap(axTA, 'parula');
+            end
+            cbar = colorbar(axTA);
+            cbar.Label.String = "Transient Absorption / OD";
+            cbar.Label.FontSize = 12;
+            
 
         end
 
-        function [timeTraceMean, timeTraceVar, timeTraceNshots] = getTimeTrace(obj, wavelength, options)
+        function peekSpectra(obj, times, options)
             arguments
                 obj TAExperiment
-                wavelength (1,:)
+                times (:, 1) {mustBeNumeric}
+                options.ShowConfidenceIntervals = false;
+                options.Units string = "Wavelengths";
+            end
+            
+            scatterplots = gobjects(length(times), 1);
+            legendlabels = strings(length(times), 1);
+            colours = parula(length(times));
+
+            figSpectra = figure();
+            axSpectra = axes('Parent',figSpectra);
+            hold(axSpectra, 'on');
+
+            for i = 1:length(times)
+                [spectrum, var] = obj.getWavelengthTrace(times(i));
+                if options.Units == "Wavelengths"
+                    scatterplots(i) = scatter(axSpectra, obj.wavelengths, spectrum, 10, colours(i, :), 'filled');
+                    if options.ShowConfidenceIntervals
+                        patch(axSpectra, [obj.wavelengths, flip(obj.wavelengths)], [spectrum + 2*(sqrt(var)), flip(spectrum - 2*(sqrt(var)))], 1, 'FaceColor', colours(i, :), 'EdgeColor', 'none', 'FaceAlpha', 0.5); 
+                    end
+                else
+                    scatterplots(i) = scatter(axSpectra, obj.pixels, spectrum, 10, colours(i, :), 'filled');
+                    if options.ShowConfidenceIntervals
+                        patch(axSpectra, [obj.pixels, flip(obj.pixels)], [spectrum + 2*(sqrt(var)), flip(spectrum - 2*(sqrt(var)))], 1, 'FaceColor', colours(i, :), 'EdgeColor', 'none', 'FaceAlpha', 0.5); 
+                    end
+                end
+                legendlabels(i) = strcat(sprintf('%.2f', times(i)), " / ps");
+            end
+            if options.Units == "Wavelengths"
+                xlim(axSpectra, [min(obj.wavelengths), max(obj.wavelengths)]);
+                xlabel(axSpectra, 'Wavelength / nm');
+            else
+                xlim(axSpectra, [min(obj.pixels), max(obj.pixels)]);
+                xlabel(axSpectra, 'Pixels');
+            end
+            ylabel(axSpectra, 'Transient Absorption / OD');
+
+            set(axSpectra, 'FontSize', 12);
+            set(axSpectra, 'Box', 'On', 'LineWidth', 2);
+            set(axSpectra, 'TickLength', [0.015, 0.015]);
+            set(axSpectra, 'Layer', 'top', 'XGrid', 'off', 'YGrid', 'off');
+            title(axSpectra, obj.makeTitle());
+            subtitle(axSpectra, obj.makeSubtitle());
+            box(axSpectra, 'On');
+
+            spectraLegend = legend(axSpectra, scatterplots, legendlabels);
+            set(spectraLegend, 'FontSize', 12);
+
+        end
+
+        function peekTimeTraces(obj, xvalues, options)
+            arguments
+                obj TAExperiment
+                xvalues (:, 1) {mustBeNumeric}
+                options.ShowConfidenceIntervals = false;
+                options.Units string = "Wavelengths";
+            end
+
+            scatterplots = gobjects(length(xvalues), 1);
+            legendlabels = strings(length(xvalues), 1);
+            colours = parula(length(xvalues));
+
+            figTimeTraces = figure();
+            axTimeTraces = axes('Parent',figTimeTraces);
+            hold(axTimeTraces, 'on');
+
+            for i = 1:length(xvalues)
+                [timeTrace, var] = obj.getTimeTrace(xvalues(i), 'Units', options.Units);
+                scatterplots(i) = scatter(axTimeTraces, obj.times, timeTrace, 10, colours(i, :), 'filled');
+                if options.ShowConfidenceIntervals
+                    patch(axTimeTraces, [obj.times, flip(obj.times)], [timeTrace + 2*(sqrt(var)), flip(timeTrace - 2*(sqrt(var)))], 1, 'FaceColor', colours(i, :), 'EdgeColor', 'none', 'FaceAlpha', 0.5); 
+                end
+                
+                if lower(options.Units) == "wavelengths"
+                    unit = " / nm";
+                else
+                    unit = " / pixels";
+                end
+                legendlabels(i) = strcat(sprintf('%.2f', xvalues(i)), unit);
+            end
+            
+            xlabel(axTimeTraces, 'Time / ps');
+            ylabel(axTimeTraces, 'Transient Absorption / OD');
+
+            set(axTimeTraces, 'FontSize', 12);
+            set(axTimeTraces, 'Box', 'On', 'LineWidth', 2);
+            set(axTimeTraces, 'TickLength', [0.015, 0.015]);
+            set(axTimeTraces, 'Layer', 'top', 'XGrid', 'off', 'YGrid', 'off');
+            title(axTimeTraces, obj.makeTitle());
+            subtitle(axTimeTraces, obj.makeSubtitle());
+            box(axTimeTraces, 'On');
+
+            spectraLegend = legend(axTimeTraces, scatterplots, legendlabels);
+            set(spectraLegend, 'FontSize', 12);
+        end
+
+        function [timeTraceMean, timeTraceVar, timeTraceNshots] = getTimeTrace(obj, value, options)
+            arguments
+                obj TAExperiment
+                value (1,:)
+                options.Units = 'Wavelengths';
                 options.dataType = 'TA';
             end
 
@@ -151,15 +268,24 @@ classdef TAExperiment < handle
                     dataNShots = obj.pumpOffNShots;
             end
             
-            if length(wavelength) == 1
+            if length(value) == 1
                 % Return single wavelength trace
-                index = obj.findWavelength(wavelength);
+                if lower(options.Units) == "wavelengths"
+                    index = obj.findWavelength(value);
+                else
+                    index = obj.findPixel(value);
+                end
+
                 timeTraceMean = datamean(:, index);
                 timeTraceVar = datavar(:, index);
                 timeTraceNshots = dataNShots(:, index);
                 
-            elseif length(wavelength) == 2
-                indices = [obj.findWavelength(wavelength(1,1)), obj.findWavelength(wavelength(1,2))];
+            elseif length(value) == 2
+                if lower(options.Units) == "wavelengths"
+                    indices = [obj.findWavelength(value(1,1)), obj.findWavelength(value(1,2))];
+                else
+                    indices = [obj.findPixel(value(1,1)), obj.findPixel(value(1,2))];
+                end
 
                 minIndex = min(indices);
                 maxIndex = max(indices);
@@ -251,6 +377,10 @@ classdef TAExperiment < handle
 
         function index = findWavelength(obj, wavelength)
             [~, index] = min(abs(obj.wavelengths - wavelength));
+        end
+
+        function index = findPixel(obj, pixel)
+            [~, index] = min(abs(obj.pixels - pixel));
         end
 
         function index = findTime(obj, time)
