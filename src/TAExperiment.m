@@ -43,7 +43,9 @@ classdef TAExperiment < handle
 
         dispersionFitCoefficients (1, :) {mustBeNumeric}
         dispersionFit (1, :) {mustBeNumeric}
-
+        
+        % Temp
+        temp
     end
 
     methods (Access = public)
@@ -145,12 +147,13 @@ classdef TAExperiment < handle
 
         end
 
-        function peekSpectra(obj, times, options)
+        function [figSpectra, axSpectra] = peekSpectra(obj, times, options)
             arguments
                 obj TAExperiment
                 times (:, 1) {mustBeNumeric}
                 options.ShowConfidenceIntervals = false;
                 options.Units string = "Wavelengths";
+                options.dataType = 'TA';
             end
             
             scatterplots = gobjects(length(times), 1);
@@ -162,7 +165,7 @@ classdef TAExperiment < handle
             hold(axSpectra, 'on');
 
             for i = 1:length(times)
-                [spectrum, var] = obj.getWavelengthTrace(times(i));
+                [spectrum, var] = obj.getWavelengthTrace(times(i), 'dataType', options.dataType);
                 if options.Units == "Wavelengths"
                     scatterplots(i) = scatter(axSpectra, obj.wavelengths, spectrum, 10, colours(i, :), 'filled');
                     if options.ShowConfidenceIntervals
@@ -171,7 +174,7 @@ classdef TAExperiment < handle
                 else
                     scatterplots(i) = scatter(axSpectra, obj.pixels, spectrum, 10, colours(i, :), 'filled');
                     if options.ShowConfidenceIntervals
-                        patch(axSpectra, [obj.pixels, flip(obj.pixels)], [spectrum + 2*(sqrt(var)), flip(spectrum - 2*(sqrt(var)))], 1, 'FaceColor', colours(i, :), 'EdgeColor', 'none', 'FaceAlpha', 0.5); 
+                        patch(axSpectra, [obj.pixels, flip(obj.pixels)], [spectrum - 2*(sqrt(var)), flip(spectrum + 2*(sqrt(var)))], 1, 'FaceColor', colours(i, :), 'EdgeColor', 'none', 'FaceAlpha', 0.5); 
                     end
                 end
                 legendlabels(i) = strcat(sprintf('%.2f', times(i)), " / ps");
@@ -183,7 +186,11 @@ classdef TAExperiment < handle
                 xlim(axSpectra, [min(obj.pixels), max(obj.pixels)]);
                 xlabel(axSpectra, 'Pixels');
             end
-            ylabel(axSpectra, 'Transient Absorption / OD');
+            if options.dataType == "TA"
+                ylabel(axSpectra, 'Transient Absorption / OD');
+            else
+                ylabel(axSpectra, 'Intensity');
+            end
 
             set(axSpectra, 'FontSize', 12);
             set(axSpectra, 'Box', 'On', 'LineWidth', 2);
@@ -198,12 +205,13 @@ classdef TAExperiment < handle
 
         end
 
-        function peekTimeTraces(obj, xvalues, options)
+        function [figTimeTraces, axTimeTraces] = peekTimeTraces(obj, xvalues, options)
             arguments
                 obj TAExperiment
                 xvalues (:, 1) {mustBeNumeric}
                 options.ShowConfidenceIntervals = false;
                 options.Units string = "Wavelengths";
+                options.dataType = 'TA';
             end
 
             scatterplots = gobjects(length(xvalues), 1);
@@ -215,10 +223,10 @@ classdef TAExperiment < handle
             hold(axTimeTraces, 'on');
 
             for i = 1:length(xvalues)
-                [timeTrace, var] = obj.getTimeTrace(xvalues(i), 'Units', options.Units);
+                [timeTrace, var] = obj.getTimeTrace(xvalues(i), 'Units', options.Units, 'dataType', options.dataType);
                 scatterplots(i) = scatter(axTimeTraces, obj.times, timeTrace, 10, colours(i, :), 'filled');
                 if options.ShowConfidenceIntervals
-                    patch(axTimeTraces, [obj.times, flip(obj.times)], [timeTrace + 2*(sqrt(var)), flip(timeTrace - 2*(sqrt(var)))], 1, 'FaceColor', colours(i, :), 'EdgeColor', 'none', 'FaceAlpha', 0.5); 
+                    patch(axTimeTraces, [obj.times; flip(obj.times)], [timeTrace - 2*(sqrt(var)); flip(timeTrace + 2*(sqrt(var)))], 1, 'FaceColor', colours(i, :), 'EdgeColor', 'none', 'FaceAlpha', 0.5); 
                 end
                 
                 if lower(options.Units) == "wavelengths"
@@ -230,7 +238,11 @@ classdef TAExperiment < handle
             end
             
             xlabel(axTimeTraces, 'Time / ps');
-            ylabel(axTimeTraces, 'Transient Absorption / OD');
+            if options.dataType == "TA"
+                ylabel(axTimeTraces, 'Transient Absorption / OD');
+            else
+                ylabel(axTimeTraces, 'Intensity');
+            end
 
             set(axTimeTraces, 'FontSize', 12);
             set(axTimeTraces, 'Box', 'On', 'LineWidth', 2);
@@ -253,7 +265,7 @@ classdef TAExperiment < handle
             end
 
             switch options.dataType
-                % Use function for all data types default to TA
+                
                 case 'TA'
                     datamean = obj.TAMean;
                     datavar = obj.TAVariance;
@@ -433,12 +445,6 @@ classdef TAExperiment < handle
                     obj.analytes(i) = Analyte(mol, conc);
                 end
             end
-%             %for i = 1:length(data.TransientAbsorption.analytes)
-%                 mol = data.TransientAbsorption.analytes(i).analyte;
-%                 conc = sprintf('%.3f', data.TransientAbsorption.analytes(i).concentration);
-%                 anal = {mol, conc};
-%                 obj.analytes = [obj.analytes, anal];
-%             end
 
             [obj.TAMean, obj.TAVariance, obj.TANShots, obj.pumpOnMean, obj.pumpOnVariance, obj.pumpOnNShots, obj.pumpOffMean, obj.pumpOffVariance, obj.pumpOffNShots] = deal(zeros(obj.nTimes, obj.nPixels));
             
@@ -540,6 +546,12 @@ classdef TAExperiment < handle
                 TAMeanCube(i, :, :) = obj.scans(i).TAMean;
                 TAVarCube(i, :, :) = obj.scans(i).TAVariance;
                 TANShotsCube(i, :, :) = obj.scans(i).TANShots;
+                pumpOnMeanCube(i, :, :) = obj.scans(i).pumpOnMean;
+                pumpOnVarCube(i, :, :) = obj.scans(i).pumpOnVariance;
+                pumpOnNShotsCube(i, :, :) = obj.scans(i).pumpOnNShots;
+                pumpOffMeanCube(i, :, :) = obj.scans(i).pumpOffMean;
+                pumpOffVarCube(i, :, :) = obj.scans(i).pumpOffVariance;
+                pumpOffNShotsCube(i, :, :) = obj.scans(i).pumpOffNShots;
             end
 
             obj.TAMean = reshape(sum(TANShotsCube.*TAMeanCube, 1, 'omitnan')./sum(TANShotsCube, 1), obj.nTimes, obj.nPixels);
