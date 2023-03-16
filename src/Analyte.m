@@ -5,14 +5,11 @@ classdef Analyte < handle
         name string = "";
         IUPACName string = "";
         molecularFormula string = "";
-        concentration (1, 1) {mustBeNumeric} % Concentration in micromoles
+        concentration (1, 1) {mustBeNumeric} % Concentration in micromolar
         electronicAbsorption (:, 1) {mustBeNumeric}
         idCAS string = "";
         idCID string = "";
         molecularWeight (1,1) {mustBeNumeric}
-
-        % Temp
-        jsonblah
        
     end
 
@@ -36,6 +33,7 @@ classdef Analyte < handle
             strHTTP = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/';
             strProperties = '/property/IUPACName,MolecularFormula,MolecularWeight/JSON';
             query = strcat(strHTTP, obj.name, strProperties);
+
             try
                 response = webread(query);
     
@@ -57,6 +55,6 @@ classdef Analyte < handle
             obj.name = name;
             obj.findOnPubChem();
         end
-        
+
     end
 end
