@@ -142,7 +142,6 @@ classdef TAExperiment < handle
                     datavar = obj.TAVariance;
                     dataNShots = obj.TANShots;
                 case 'Pump On'
-                    disp('Here');
                     datamean = obj.pumpOnMean;
                     datavar = obj.pumpOnVariance;
                     dataNShots = obj.pumpOnNShots;
@@ -190,7 +189,6 @@ classdef TAExperiment < handle
                     datavar = obj.TAVariance;
                     dataNShots = obj.TANShots;
                 case 'Pump On'
-                    disp('Here');
                     datamean = obj.pumpOnMean;
                     datavar = obj.pumpOnVariance;
                     dataNShots = obj.pumpOnNShots;
