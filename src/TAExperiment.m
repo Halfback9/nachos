@@ -1,6 +1,6 @@
 classdef TAExperiment < handle
-    %UNTITLED4 Summary of this class goes here
-    %   Detailed explanation goes here
+    % Class contains the information contained within a single
+    % transient absorption experiment
 
     properties
        
@@ -15,9 +15,15 @@ classdef TAExperiment < handle
         Calibration (1, 2) {mustBeNumeric}
         CalibrationPoints (:, 1) CalibrationPoint
 
-        pumpWavelength (1, 1) {mustBeNumeric} = 0 
-        pumpBandwidth (1, 1) {mustBeNumeric} = 0
-        pumpEnergy (1, 1) {mustBeNumeric} = 0
+        pumpWavelength (1, 1) {mustBeNumeric} = 0 % Units: nanometers
+        pumpBandwidth (1, 1) {mustBeNumeric} = 0 % Units: nanometers
+        pumpEnergy (1, 1) {mustBeNumeric} = 0 % Units: nanojoules
+
+        opticalDensity (1, 1) {mustBeNumeric} = 0 % Units: dimensionless
+        jetPathLength (1, 1) {mustBeNumeric} = 0 % Units: micrometers
+        pumpAngle (1, 1) {mustBeNumeric} = 0 % Units: degrees
+        pumpSpotSize (1, 1) {mustBeNumeric} = 0 % Units: micrometers
+        probeSpotSize(1, 1) {mustBeNumeric} = 0 % Units: micrometers
 
         analytes Analyte
         solvent (1, 1) string = ""
@@ -99,7 +105,6 @@ classdef TAExperiment < handle
             uiwait(correctionApp.UIFigure);
             obj.dispersionFitCoefficients = correctionApp.dispersionFitCoefficients;
             obj.buildDispersionFit();
-            
             obj.dispersionCorrectData()
            
         end
@@ -425,6 +430,25 @@ classdef TAExperiment < handle
             obj.pumpBandwidth = data.TransientAbsorption.pump_bandwidth;
             obj.pumpEnergy = data.TransientAbsorption.pump_energy;
             obj.solvent = data.TransientAbsorption.solvent;
+            try
+                obj.opticalDensity = data.TransientAbsorption.optical_density;
+            end
+
+            try
+                obj.jetPathLength = data.TransientAbsorption.jet_path_length;
+            end
+
+            try 
+                obj.pumpAngle = data.TransientAbsorption.pump_angle;
+            end
+
+            try 
+                obj.pumpSpotSize = data.TransientAbsorption.pump_spot_size;
+            end
+
+            try
+                obj.probeSpotSize = data.TransientAbsorption.probe_spot_size;
+            end
 
             obj.nTimes = length(data.TransientAbsorption.time_delays);
             obj.times = data.TransientAbsorption.time_delays;
@@ -606,13 +630,17 @@ classdef TAExperiment < handle
             [~, timeGrid] = meshgrid(obj.pixels, obj.times);
             time_shifted_grid = timeGrid - obj.dispersionFit; % Care must be taken that the dispersion curve is a row vec while the timegrid has columns as pixels amnd the rows as times
             
-            for i = 1:obj.nScans
-                for j = 1:obj.nPixels
-                    obj.scans(i).TAMean(:, j) = interp1(time_shifted_grid(:, j), obj.scans(i).TAMean(:, j), obj.times, 'linear', 'extrap');
-                end
+            %for i = 1:obj.nScans
+            %    for j = 1:obj.nPixels
+            %        obj.scans(i).TAMean(:, j) = interp1(time_shifted_grid(:, j), obj.scans(i).TAMean(:, j), obj.times, 'linear', 'extrap');
+            %    end
+            %end
+
+            for i = 1:obj.nPixels
+                   obj.TAMean(:, i) = interp1(time_shifted_grid(:, i), obj.TAMean(:, i), obj.times, 'linear', 'extrap');
             end
 
-            obj.combine_scans();
+            %obj.combine_scans();
 
         end
 

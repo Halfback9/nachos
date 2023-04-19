@@ -51,7 +51,7 @@ classdef DispersionCorrection < matlab.apps.AppBase
 
         function onFinishButtonPushed(app, event)
             
-            app.close_window(app.UIFigure);
+            app.close_window(false);
         end
 
         function onKeyPressed(app, event)
