@@ -405,6 +405,7 @@ classdef TAExperiment < handle
         end
 
         function loadFile(obj)
+            disp('Loading Burritos File...');
 
             data = jsondecode(fileread(obj.fileName));
             obj.json = data;
