@@ -96,7 +96,11 @@ classdef DispersionCorrection < matlab.apps.AppBase
 
         function changeClim(app, event)
             val = event.Value;
-            clim(app.UIAxes, [-1*abs(val), abs(val)]);
+            try
+                clim(app.UIAxes, [-1*abs(val), abs(val)]);
+            catch
+                caxis(app.UIAxes, [-1*abs(val), abs(val)]);
+            end
         end
     end
 
@@ -133,7 +137,6 @@ classdef DispersionCorrection < matlab.apps.AppBase
 
             % Create ColourRangeEditField
             app.ColourRangeEditField = uieditfield(app.UIFigure, 'numeric');
-            %app.ColourRangeEditField.Value = max(abs(clim));
             app.ColourRangeEditField.ValueChangedFcn = createCallbackFcn(app, @changeClim, true);
             app.ColourRangeEditField.Position = [144 444 100 22];
     
@@ -179,7 +182,11 @@ classdef DispersionCorrection < matlab.apps.AppBase
             xlim(app.UIAxes, [min(app.pixels), max(app.pixels)]);
             %ylim(app.UIAxes, [min(app.times), max(app.times)]);
             ylim(app.UIAxes, [-1, 1]);
-            clim(app.UIAxes, [-0.003, 0.003]);
+            try
+                clim(app.UIAxes, [-0.003, 0.003]);
+            catch
+                caxis(app.UIAxes, [-0.003, 0.003]);
+            end
 
             if nargout == 0
                 clear app
