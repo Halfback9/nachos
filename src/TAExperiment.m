@@ -377,6 +377,52 @@ classdef TAExperiment < handle
             obj.dispersionCorrectData();
             
         end
+
+        function concExcitedMolecules = concExcitedMolecules(obj)
+            concExcitedMolecules = (obj.NumExcitedMolecules./6.02E23) ./ obj.pumpCylinderVolume();
+        end
+
+        function numExcitedMolecules = NumExcitedMolecules(obj)
+            if obj.opticalDensity > 0
+                numExcitedMolecules = obj.numPumpPhotons - (obj.numPumpPhotons./10.^obj.opticalDensity);
+            else
+                error('Optical density value not valid');
+            end
+        end
+
+        function numPhotons = numPumpPhotons(obj)
+            if obj.pumpEnergy > 0
+                numPhotons = (obj.pumpEnergy*1E-9)/obj.pumpPhotonEnergy;
+            else
+                error('Pump energy value not valid')
+            end
+                
+        end
+
+        function energy = pumpPhotonEnergy(obj)
+            if obj.pumpWavelength > 0
+                energy = (6.636E-34 * 2.998E8)./(obj.pumpWavelength*1E-9);
+            else
+                error('Pump wavelength value not valid');
+            end
+        end
+
+        function volume = pumpCylinderVolume(obj)
+            if obj.jetPathLength > 0
+                pump_volume_m3 = obj.pumpArea() * obj.jetPathLength*1E-6; % Meters cubed
+                volume = pump_volume_m3 * 1000; % volume in Litres
+            else
+                error('Jet path length value not valid')
+            end
+        end
+
+        function area = pumpArea(obj)
+            if obj.pumpSpotSize > 0
+                area = 3.141*((obj.pumpSpotSize*1E-6)/2).^2; % Meters squared
+            else
+                error('Pump spot size value not valid')
+            end
+        end
         
     end
 
