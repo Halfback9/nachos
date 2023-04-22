@@ -379,10 +379,10 @@ classdef TAExperiment < handle
         end
 
         function concExcitedMolecules = concExcitedMolecules(obj)
-            concExcitedMolecules = (obj.NumExcitedMolecules./6.02E23) ./ obj.pumpCylinderVolume();
+            concExcitedMolecules = (obj.numExcitedMolecules./6.02E23) ./ obj.pumpCylinderVolume();
         end
 
-        function numExcitedMolecules = NumExcitedMolecules(obj)
+        function numExcitedMolecules = numExcitedMolecules(obj)
             if obj.opticalDensity > 0
                 numExcitedMolecules = obj.numPumpPhotons - (obj.numPumpPhotons./10.^obj.opticalDensity);
             else
@@ -422,6 +422,11 @@ classdef TAExperiment < handle
             else
                 error('Pump spot size value not valid')
             end
+        end
+
+        function updateCalibration(obj, calibrationPolynomial)
+            obj.Calibration = calibrationPolynomial;
+            obj.buildWavelengthVector();
         end
         
     end
