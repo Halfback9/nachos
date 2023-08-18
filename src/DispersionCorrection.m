@@ -80,18 +80,14 @@ classdef DispersionCorrection < matlab.apps.AppBase
             set(app.scatterPlot, 'XData', app.dispersionCurveXVals, 'YData', app.dispersionCurveYVals, 'ZData', Zs);
 
             if length(Zs) == 2
-                %app.dispersionFitCoefficients = [0, polyfit(app.dispersionCurveXVals, app.dispersionCurveYVals, 1)];
                 app.dispersionFitCoefficients = polyfit(app.dispersionCurveXVals, app.dispersionCurveYVals, 1);
-                %app.dispersionFit = app.dispersionFitCoefficients(1).*app.pixels.^2 + app.dispersionFitCoefficients(2).*app.pixels;
                 app.dispersionFit = app.dispersionFitCoefficients(1).*app.pixels + app.dispersionFitCoefficients(2);
                 set(app.linePlot, 'XData', app.pixels, 'YData', app.dispersionFit, 'ZData', app.dispersionZVals);
             elseif length(Zs) == 3
-                %app.dispersionFitCoefficients = polyfit(app.dispersionCurveXVals, app.dispersionCurveYVals, 2);
                 app.dispersionFitCoefficients = polyfit(app.dispersionCurveXVals, app.dispersionCurveYVals, 2);
                 app.dispersionFit = app.dispersionFitCoefficients(1).*app.pixels.^2 + app.dispersionFitCoefficients(2).*app.pixels + app.dispersionFitCoefficients(3);
                 set(app.linePlot, 'XData', app.pixels, 'YData', app.dispersionFit, 'ZData', app.dispersionZVals);
             elseif length(Zs) > 3
-                %app.dispersionFitCoefficients = [0, polyfit(app.dispersionCurveXVals, app.dispersionCurveYVals, 3)];
                 app.dispersionFitCoefficients = polyfit(app.dispersionCurveXVals, app.dispersionCurveYVals, 3);
                 app.dispersionFit = app.dispersionFitCoefficients(1).*app.pixels.^3 + app.dispersionFitCoefficients(2).*app.pixels.^2 + app.dispersionFitCoefficients(3).*app.pixels + app.dispersionFitCoefficients(4);
                 set(app.linePlot, 'XData', app.pixels, 'YData', app.dispersionFit, 'ZData', app.dispersionZVals);
